@@ -10,6 +10,7 @@ module.exports = function DeviceListDetailsDirective(
 , DeviceService
 , LightboxImageService
 , StandaloneService
+, LogcatService
 ) {
   return {
     restrict: 'E'
@@ -34,6 +35,14 @@ module.exports = function DeviceListDetailsDirective(
 
 
       function kickDevice(device, force) {
+        //if (typeof(LogcatService.luzeEntries[device.serial].started) !== 'undefined'){
+        //  if(LogcatService.luzeEntries[device.serial].started){
+        //    LogcatService.luzeEntries[device.serial].started=false
+        //    LogcatService.luzeEntries[device.serial].logs = []
+        //    $scope.control.stopLogcat()
+        //  }
+        //}
+        
         return GroupService.kick(device, force).catch(function(e) {
           alert($filter('translate')(gettext('Device cannot get kicked from the group')))
           throw new Error(e)
@@ -66,6 +75,7 @@ module.exports = function DeviceListDetailsDirective(
             e.preventDefault()
           }
           else if (device.using) {
+            // LuZe investigate
             kickDevice(device)
             e.preventDefault()
           }

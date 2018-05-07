@@ -8,6 +8,7 @@ module.exports = function DeviceListCtrl(
 , ControlService
 , SettingsService
 , $location
+, LogcatService
 ) {
   $scope.tracker = DeviceService.trackAll($scope)
   $scope.control = ControlService.create($scope.tracker.devices, '*ALL')
@@ -164,6 +165,10 @@ module.exports = function DeviceListCtrl(
 
   $scope.toggle = function(device) {
     if (device.using) {
+      if(LogcatService.luzeEntries[device.serial].started){
+        LogcatService.luzeEntries[device.serial].started=false
+        LogcatService.luzeEntries[device.serial].logs = []
+      }
       $scope.kick(device)
     } else {
       $location.path('/control/' + device.serial)

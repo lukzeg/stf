@@ -3,6 +3,7 @@ var _s = require('underscore.string')
 
 module.exports = function LogcatServiceFactory(socket, FilterStringService) {
   var service = {}
+  var deviceSerial = []
   service.started = false
   service.numberOfEntries = 0
 
@@ -48,8 +49,11 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
     'priority'
   ])
 
-  service.entries = [
-  ]
+  service.entries = []
+
+  service.deviceSerial = []
+
+  service.luzeEntries = {}
 
   service.logLevels = [
     'UNKNOWN',
@@ -90,28 +94,48 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
     return data
   }
 
+  function deviceSerialExist(serial){
+    if ( service.deviceSerial.indexOf(serial) === -1){
+      service.deviceSerial.push(serial)
+    }
+  }
+
   socket.on('logcat.entry', function(rawData) {
+    deviceSerialExist(rawData.serial)
     service.numberOfEntries++
-    service.entries.push(enhanceEntry(rawData))
+    var TmpObject = enhanceEntry(rawData)
+    if (Object.keys(service.luzeEntries).indexOf(rawData.serial) <0){
+      service.luzeEntries[rawData.serial]={logs : [], selectedLogLevel : 2 , started: true }
+    }
+    service.luzeEntries[rawData.serial].logs.push(enhanceEntry(TmpObject))
+    service.entries.push(enhanceEntry(TmpObject))
+    var serial = TmpObject.serial;
 
     if (typeof (service.addEntryListener) === 'function') {
       if (filterLine(rawData)) {
+        rawData["logsSerial"] = service.deviceSerial
         service.addEntryListener(rawData)
       }
     }
   })
 
   service.clear = function() {
-    service.numberOfEntries = 0
-    service.entries = []
+    var devSerial = (window.location.href).split('/').pop();
+    if (Object.keys(service.luzeEntries).indexOf(devSerial) >-1) {
+      service.luzeEntries[devSerial].logs = []
+    }
   }
 
   service.filters.filterLines = function() {
-    service.filters.entries = _.filter(service.entries, filterLine)
+     var devSerial = (window.location.href).split('/').pop()
 
-    if (typeof (service.addFilteredEntriesListener) === 'function') {
-      service.addFilteredEntriesListener(service.filters.entries)
+    if (Object.keys(service.luzeEntries).indexOf(devSerial)>-1){
+      service.filters.entries = _.filter(service.luzeEntries[devSerial].logs.entries, filterLine)
     }
+
+    if (typeof (service.addFilteredEntriesListener) === 'function' ) {
+      service.addFilteredEntriesListener(service.filters.entries)
+    }filterLine
   }
 
   function filterLine(line) {
