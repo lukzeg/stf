@@ -6,6 +6,7 @@ module.exports = function DeviceListIconsDirective(
 , DeviceColumnService
 , GroupService
 , StandaloneService
+, LogcatService
 ) {
   function DeviceItem() {
     return {
@@ -119,6 +120,11 @@ module.exports = function DeviceListIconsDirective(
 
 
       function kickDevice(device, force) {
+        if(LogcatService.luzeEntries[device.serial].started){
+          LogcatService.luzeEntries[device.serial].started=false
+          LogcatService.luzeEntries[device.serial].logs = []
+          //$scope.control.stopLogcat()
+        }
         return GroupService.kick(device, force).catch(function(e) {
           alert($filter('translate')(gettext('Device cannot get kicked from the group')))
           throw new Error(e)

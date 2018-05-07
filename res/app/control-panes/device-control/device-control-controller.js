@@ -1,7 +1,7 @@
 var _ = require('lodash')
 
 module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
-  $location, $timeout, $window, $rootScope) {
+  $location, $timeout, $window, $rootScope, LogcatService) {
 
   $scope.showScreen = true
 
@@ -17,6 +17,12 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
     }
 
     try {
+      if(LogcatService.luzeEntries[device.serial].started){
+        LogcatService.luzeEntries[device.serial].started=false
+        LogcatService.luzeEntries[device.serial].logs = []
+        $scope.control.stopLogcat()
+
+      }
       // If we're trying to kick current device
       if (device.serial === $scope.device.serial) {
 
