@@ -568,7 +568,7 @@ function DeviceNameCell(options) {
 
       if (device.using) {
         a.className = 'device-product-name-using'
-        a.href = '#!/control/' + device.serial
+        a.href = '#!/control/' + device.serial + '/restore'
       }
       else if (device.usable) {
         a.className = 'device-product-name-usable'

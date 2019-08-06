@@ -17,15 +17,42 @@ module.exports = angular.module('control-panes', [
   require('./info').name
 ])
   .config(['$routeProvider', function($routeProvider) {
-
     $routeProvider
       .when('/control', {
         template: '<div ng-controller="ControlPanesNoDeviceController"></div>',
         controller: 'ControlPanesNoDeviceController'
       })
+      //.when('/control/:serial', {
+      //  template: require('./control-panes.pug'),
+        // TODO: Move device inviting to resolve
+        //resolve: {
+        //  device
+        //  control
+        //}
+      //})
       .when('/control/:serial', {
         template: require('./control-panes.pug'),
-        controller: 'ControlPanesCtrl'
+        controller: 'ControlPanesCtrl',
+        resolve: {
+          cleanUp: function($route) {
+            if(!$route.current.params.cleanUp) {
+              $route.current.params.cleanUp = true
+            }
+          }
+        }
+        // TODO: Move device inviting to resolve
+        //resolve: {
+        //  device
+        //  control
+        //}
+        })
+      .when('/control/:serial/restore', {
+        template: require('./control-panes.pug'),
+        controller: 'ControlPanesCtrl',
+        resolve: {
+          cleanUp: function($route) { $route.current.params.cleanUp = false
+          }
+        }
         // TODO: Move device inviting to resolve
         //resolve: {
         //  device

@@ -1,5 +1,5 @@
- var _ = require('lodash')
-var FileSaver = require('file-saver');
+var _ = require('lodash')
+var FileSaver = require('file-saver')
 
 module.exports =
   function logcatTableDirective($rootScope, $timeout, LogcatService) {
@@ -15,59 +15,50 @@ module.exports =
         var parent = element[0]
         var body = element.find('tbody')[0]
         var maxEntriesBuffer = 3000
-        var numberOfEntries = 0
-        var deviceSerial = (window.location.href).split('/').pop();
+        var maxVisibleEntries = 100
+        var deviceSerial = (window.location.href).split('/').pop()
         
+        scope.allowClean = true
+
         scope.started = checkLoggerServiceStatus(true)
-        
-        function checkLoggerServiceStatus(loadLogs=false) {
+        console.log('logcatTableDirective', $rootScope)
+        function checkLoggerServiceStatus(loadLogs = false) {
           var collectedLogs = []
 
-          //LogcatService.entries
-          // Newly added by luze
-          if (Object.keys(LogcatService.luzeEntries).indexOf(deviceSerial) > -1) {
-            collectedLogs =  LogcatService.luzeEntries[deviceSerial].logs
+          if (Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {
+            collectedLogs = LogcatService.deviceEntries[deviceSerial].logs
           }
           
-          for (var logLine = 0 ; logLine < collectedLogs.length; logLine++) {
-            if ( deviceSerial.indexOf(collectedLogs[logLine].serial) > -1 ) {
+          for (var logLine = 0; logLine < collectedLogs.length; logLine++) {
+            if (deviceSerial === collectedLogs[logLine].serial) {
               if (loadLogs) {
                 restoreLogs(collectedLogs)
               }
-              return LogcatService.luzeEntries[deviceSerial].started
+              return LogcatService.deviceEntries[deviceSerial].started
             }
           }
           return false
         }
 
         function incrementNumberEntry() {
-          if ( element.find('tbody')[0].rows.length > maxEntriesBuffer) {
+          if (element.find('tbody')[0].rows.length > maxVisibleEntries) {
             myDeleteFunction()
           }
         }
 
         function myDeleteFunction() {
-          element.find('tbody')[0].deleteRow(0);
+          element.find('tbody')[0].deleteRow(0)
         }
 
         LogcatService.addEntryListener = function(entry) {
-          
-          scope.started =( (deviceSerial.indexOf(entry.serial) > -1) ? true : false )
-          console.log(entry.logsSerial)
-          if ( deviceSerial.indexOf(entry.serial) > -1 ) {
+          if (deviceSerial === entry.serial) {
             incrementNumberEntry()
             addRow(body, entry)
           }
         }
 
         LogcatService.addFilteredEntriesListener = function(entries) {
-          //clearTable()
           checkLoggerServiceStatus()
-          //_.each(entries, function(entry) {
-          // TODO: This is not adding all the entries after first scope creation
-          //   incrementNumberEntry()
-          //  addRow(body, entry, true)
-          //})
         }
 
         function shouldAutoScroll() {
@@ -126,50 +117,83 @@ module.exports =
 
         scope.clearTable = function() {
           LogcatService.clear()
-          numberOfEntries = 0
           clearTable()
         }
 
         function restoreLogs(collectedLogs) {
-          if (scope.filters.priority !== scope.filters.levelNumbers[LogcatService.luzeEntries[deviceSerial].selectedLogLevel - 2]) { 
-            if (LogcatService.luzeEntries[deviceSerial].selectedLogLevel - 2 >= 0 ) {
-              scope.filters.priority = scope.filters.levelNumbers[LogcatService.luzeEntries[deviceSerial].selectedLogLevel - 2];
-            }
+          clearTable()
+
+          var startFrom = 0
+          if (collectedLogs.length - maxEntriesBuffer >= 0) {
+            startFrom = collectedLogs.length - maxEntriesBuffer
           }
           
-          clearTable()
-          for (var logLine = 0 ; logLine < collectedLogs.length; logLine++) {
-            if ( deviceSerial.indexOf(collectedLogs[logLine].serial) > -1 ) {
+          for (var logLine = startFrom; logLine < collectedLogs.length; logLine++) {
+            if (deviceSerial === collectedLogs[logLine].serial) {
               addRow(body, collectedLogs[logLine], true)
             }
           }
         }
 
-        scope.saveLogs =  function(){
-          var matches = document.querySelectorAll('[title="Save Logs"]');
-          var filename = deviceSerial + "_logs.log"
-          var a = matches[0];
-          var logsArray = []
-
-          //LogcatService.entries
-          if (Object.keys(LogcatService.luzeEntries).indexOf(deviceSerial) > -1) {
-            collectedLogs =  LogcatService.luzeEntries[deviceSerial].logs
+        /**
+           * Validate filter.data object value and assign bordercolor to red if value
+           * doesn't match regex(pattern):
+           * - HH:mm:ss.SSS
+           * - H:mm:ss.SSS
+           * - :mm:SS.SSS
+           * - mm:ss.SSS
+           * - m:ss.SSS
+           * -... combinations
+           *  in other case colour will be set to default.
+           *
+           * @param {event} event object
+           */
+        scope.validateDate = function(e) {
+          var pattern = ['^(?:(?:([0-1]?\\d|2[0-3]):)?(:[0-5]\\d|[0-5]\\d):|\\d)',
+            '?(:[0-5]\\d|[0-5]\\d{1,2})?(\\.[0-9]?\\d{0,2}|:[0-5]?\\d{0,1})|(\\d{0,2})'].join([])
+          var regex = new RegExp(pattern, 'g')
+          var inputValue = event.srcElement.value
+          var matchArray = inputValue.match(regex)
+          var isTextValid = false
+          if (matchArray) {
+            matchArray.forEach(function(item, index) {
+              if (item === inputValue) {
+                isTextValid = true
+                event.srcElement.style.borderColor = ''
+              }
+            })
           }
-          var toSave = ""
-          if (logsArray.length > 0) {
-            toSave = {"deviceOS": logsArray[0].deviceLabel,
-                          "serial": logsArray[0].serial,
-                          "logs": []}
-            for (var line = 0 ; line < logsArray.length; line ++) {
-              toSave.logs.push({"date": logsArray[line].date,
-                              "pid": logsArray[line].pid,
-                              "tag": logsArray[line].tag,
-                              "priorityLabel": logsArray[line].priorityLabel,
-                              "message": logsArray[line].message})
+
+          if (isTextValid === false) {
+            event.srcElement.style.borderColor = 'red'
+          }
+        }
+
+        scope.saveLogs = function() {
+          var matches = document.querySelectorAll('[title="Save Logs"]')
+          var filename = deviceSerial + '_logs.log'
+          var a = matches[0]
+          var collectedLogs = []
+
+          if (Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {
+            collectedLogs = LogcatService.deviceEntries[deviceSerial].logs
+          }
+         
+          var toSave = ''
+          if (collectedLogs.length > 0) {
+            toSave = {'deviceOS': collectedLogs[0].deviceLabel,
+                      'serial': collectedLogs[0].serial,
+                      'logs': []}
+            for (var line = 0; line < collectedLogs.length; line++) {
+              toSave.logs.push({'date': collectedLogs[line].date,
+                                'pid': collectedLogs[line].pid,
+                                'tag': collectedLogs[line].tag,
+                                'priorityLabel': collectedLogs[line].priorityLabel,
+                                'message': collectedLogs[line].message})
             }
           }
-          var blob = new Blob([JSON.stringify(toSave)], {type: "application/json;charset=utf-8"});
-          FileSaver.saveAs(blob, deviceSerial + "_logs.json");
+          var blob = new Blob([JSON.stringify(toSave)], {type: 'application/json;charset=utf-8'})
+          FileSaver.saveAs(blob, deviceSerial + '_logs.json')
         }
 
         scope.$on('$destroy', function() {

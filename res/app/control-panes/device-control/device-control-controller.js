@@ -9,7 +9,15 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
 
   $scope.groupDevices = $scope.groupTracker.devices
 
+  $scope.$on('$locationChangeStart', function(event, next, current) {
+    console.log('event', event)
+    console.log('next', next)
+    console.log('current', current)
+    LogcatService.allowCleanUp = true
+  })
+
   $scope.kickDevice = function(device) {
+    // LogcatService.allowCleanUp = true
 
     if (!device || !$scope.device) {
       alert('No device found')
@@ -17,12 +25,7 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
     }
 
     try {
-      if(LogcatService.luzeEntries[device.serial].started){
-        LogcatService.luzeEntries[device.serial].started=false
-        LogcatService.luzeEntries[device.serial].logs = []
-        $scope.control.stopLogcat()
 
-      }
       // If we're trying to kick current device
       if (device.serial === $scope.device.serial) {
 

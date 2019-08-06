@@ -3,9 +3,7 @@ var _s = require('underscore.string')
 
 module.exports = function LogcatServiceFactory(socket, FilterStringService) {
   var service = {}
-  var deviceSerial = []
   service.started = false
-  service.numberOfEntries = 0
 
   service.serverFilters = [
     {
@@ -15,7 +13,6 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
   ]
 
   service.filters = {
-    numberOfEntries: 0,
     entries: [
     ],
     levelNumbers: []
@@ -49,11 +46,11 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
     'priority'
   ])
 
-  service.entries = []
-
   service.deviceSerial = []
 
-  service.luzeEntries = {}
+  service.deviceEntries = {}
+
+  service.allowCleanUp = true
 
   service.logLevels = [
     'UNKNOWN',
@@ -94,48 +91,59 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
     return data
   }
 
-  function deviceSerialExist(serial){
-    if ( service.deviceSerial.indexOf(serial) === -1){
+  function deviceSerialExist(serial) {
+    if (service.deviceSerial !== serial) {
       service.deviceSerial.push(serial)
+    }
+  }
+
+  service.initDeviceLogCollector = function(serial) {
+    service.deviceEntries[serial] = {logs: [], selectedLogLevel: 2, started: false, filters: {
+      'levelNumber': service.filters.levelNumbers,
+      'message': '',
+      'pid': '',
+      'tid': '',
+      'dateLabel': '',
+      'date': '',
+      'tag': ''
+      }
     }
   }
 
   socket.on('logcat.entry', function(rawData) {
     deviceSerialExist(rawData.serial)
-    service.numberOfEntries++
     var TmpObject = enhanceEntry(rawData)
-    if (Object.keys(service.luzeEntries).indexOf(rawData.serial) <0){
-      service.luzeEntries[rawData.serial]={logs : [], selectedLogLevel : 2 , started: true }
+    if (!Object.keys(service.deviceEntries).includes(rawData.serial)) {
+      service.deviceEntries[rawData.serial] = {logs: [], selectedLogLevel: 2, started: true}
     }
-    service.luzeEntries[rawData.serial].logs.push(enhanceEntry(TmpObject))
-    service.entries.push(enhanceEntry(TmpObject))
-    var serial = TmpObject.serial;
+
+    service.deviceEntries[rawData.serial].logs.push(enhanceEntry(TmpObject))
 
     if (typeof (service.addEntryListener) === 'function') {
       if (filterLine(rawData)) {
-        rawData["logsSerial"] = service.deviceSerial
+        rawData.logsSerial = service.deviceSerial
         service.addEntryListener(rawData)
       }
     }
   })
 
   service.clear = function() {
-    var devSerial = (window.location.href).split('/').pop();
-    if (Object.keys(service.luzeEntries).indexOf(devSerial) >-1) {
-      service.luzeEntries[devSerial].logs = []
+    var devSerial = (window.location.href).split('/').pop()
+    if (Object.keys(service.deviceEntries).includes(devSerial)) {
+      service.deviceEntries[devSerial].logs = []
     }
   }
 
   service.filters.filterLines = function() {
      var devSerial = (window.location.href).split('/').pop()
 
-    if (Object.keys(service.luzeEntries).indexOf(devSerial)>-1){
-      service.filters.entries = _.filter(service.luzeEntries[devSerial].logs.entries, filterLine)
+    if (Object.keys(service.deviceEntries).includes(devSerial)) {
+      service.filters.entries = _.filter(service.deviceEntries[devSerial].logs.entries, filterLine)
     }
 
-    if (typeof (service.addFilteredEntriesListener) === 'function' ) {
+    if (typeof (service.addFilteredEntriesListener) === 'function') {
       service.addFilteredEntriesListener(service.filters.entries)
-    }filterLine
+    }
   }
 
   function filterLine(line) {
@@ -167,7 +175,6 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
     }
     return matched
   }
-
 
   return service
 }

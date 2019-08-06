@@ -84,11 +84,19 @@ module.exports = function DeviceListIconsDirective(
           name.classList.remove('state-available')
         }
 
-        if (device.usable) {
+        if (device.usable && !device.using) {
           a.href = '#!/control/' + device.serial
+          console.log('serial', device.serial)
+          console.log('deviceListIcons-directive usable', device.usable)
+          console.log('deviceListIcons-directive using', device.using)
           li.classList.remove('device-is-busy')
         }
+        else if (device.using && device.usable) {
+          console.log('deviceListIcons-directive using', device.using)
+          a.href = '#!/control/' + device.serial + '/restore'
+        }
         else {
+          console.log('deviceListIcons-directive else', device.usable)
           a.removeAttribute('href')
           li.classList.add('device-is-busy')
         }
@@ -120,12 +128,8 @@ module.exports = function DeviceListIconsDirective(
 
 
       function kickDevice(device, force) {
-        if(LogcatService.luzeEntries[device.serial].started){
-          LogcatService.luzeEntries[device.serial].started=false
-          LogcatService.luzeEntries[device.serial].logs = []
-          //$scope.control.stopLogcat()
-        }
         return GroupService.kick(device, force).catch(function(e) {
+          LogcatService.allowCleanUp = true
           alert($filter('translate')(gettext('Device cannot get kicked from the group')))
           throw new Error(e)
         })
@@ -165,8 +169,11 @@ module.exports = function DeviceListIconsDirective(
           }
 
           if (device.using) {
-            kickDevice(device)
-            e.preventDefault()
+            if (e.target.classList.contains('btn') &&
+              e.target.classList.contains('state-using')) {
+              kickDevice(device)
+              e.preventDefault()
+            }
           }
         }
       })
