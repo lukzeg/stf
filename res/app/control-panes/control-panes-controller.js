@@ -59,7 +59,6 @@ module.exports =
 
     // TODO: Move this out to Ctrl.resolve
     function getDevice(serial) {
-
       DeviceService.get(serial, $scope)
         .then(function(device) {
           return GroupService.invite(device)
@@ -91,4 +90,5 @@ module.exports =
         }
       }
     }, true)
+
   }

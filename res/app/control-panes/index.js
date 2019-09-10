@@ -22,30 +22,15 @@ module.exports = angular.module('control-panes', [
         template: '<div ng-controller="ControlPanesNoDeviceController"></div>',
         controller: 'ControlPanesNoDeviceController'
       })
-      //.when('/control/:serial', {
-      //  template: require('./control-panes.pug'),
-        // TODO: Move device inviting to resolve
-        //resolve: {
-        //  device
-        //  control
-        //}
-      //})
       .when('/control/:serial', {
         template: require('./control-panes.pug'),
-        controller: 'ControlPanesCtrl',
-        resolve: {
-          cleanUp: function($route) {
-            if(!$route.current.params.cleanUp) {
-              $route.current.params.cleanUp = true
-            }
-          }
-        }
+        controller: 'ControlPanesCtrl'
         // TODO: Move device inviting to resolve
         //resolve: {
         //  device
         //  control
         //}
-        })
+      })
       // TODO: add standalone
       .when('/c/:serial', {
         template: require('./control-panes.pug'),

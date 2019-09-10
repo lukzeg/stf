@@ -1,5 +1,4 @@
 var _ = require('lodash')
-var FileSaver = require('file-saver')
 
 module.exports =
   function logcatTableDirective($rootScope, $timeout, LogcatService, SaveLogService) {
