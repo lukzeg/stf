@@ -46,19 +46,29 @@ module.exports =
           return isStarted
         }
 
-        function incrementNumberEntry() {
-          if (element.find('tbody')[0].rows.length > maxVisibleEntries) {
-            myDeleteFunction()
+        function limitVisibleEntries() {
+          var limiter = ''
+          if (maxVisibleEntries > maxEntriesBuffer) {
+            limiter = maxEntriesBuffer
+          } else {
+            limiter = maxVisibleEntries
+          }
+
+          if (element.find('tbody')[0].rows.length > limiter) {
+            removeFirstLogTableEntry()
           }
         }
 
-        function myDeleteFunction() {
+        function removeFirstLogTableEntry() {
           element.find('tbody')[0].deleteRow(0)
         }
 
         LogcatService.addEntryListener = function(entry) {
           if (deviceSerial === entry.serial) {
-            incrementNumberEntry()
+            limitVisibleEntries()
+            if (LogcatService.deviceEntries[deviceSerial].logs.length > maxEntriesBuffer) {
+              LogcatService.deviceEntries[deviceSerial].logs.shift()
+            }
             addRow(body, entry)
           }
         }

@@ -17,6 +17,7 @@ module.exports = angular.module('control-panes', [
   require('./info').name
 ])
   .config(['$routeProvider', function($routeProvider) {
+
     $routeProvider
       .when('/control', {
         template: '<div ng-controller="ControlPanesNoDeviceController"></div>',
