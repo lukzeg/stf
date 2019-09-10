@@ -35,8 +35,12 @@ module.exports = function DeviceListDetailsDirective(
 
 
       function kickDevice(device, force) {
+        LogcatService.allowClean = true
+        if (Object.keys(LogcatService.deviceEntries).includes(device.serial)) {
+          LogcatService.deviceEntries[device.serial].allowClean = true
+        }
+        $rootScope.LogcatService = LogcatService
         return GroupService.kick(device, force).catch(function(e) {
-          LogcatService.allowCleanUp = true
           alert($filter('translate')(gettext('Device cannot get kicked from the group')))
           throw new Error(e)
         })

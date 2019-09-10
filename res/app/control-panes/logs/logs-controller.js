@@ -1,15 +1,10 @@
-module.exports = function LogsCtrl($scope, $routeParams, LogcatService) {
+module.exports = function LogsCtrl($scope, $rootScope, $routeParams, LogcatService) {
 
   var deviceSerial = $routeParams.serial
-  var routeState = $routeParams.restoreFilters
-  console.log('routParams.cleanup', $routeParams.cleanUp)
-  console.log(' LogcatService.allowCleanUp',  LogcatService.allowCleanUp)
-  var cleanDevice =  (window.location.href).split('/').pop()
-  console.log('deviceSerial', deviceSerial)
+  var cleanDevice = (window.location.href).split('/').pop()
   cleanDeviceSettings()
 
-  $scope.started = checkLogBtnStatus() === null ? LogcatService.started : checkLogBtnStatus
-
+  $scope.started = checkLogBtnStatus() === null ? false : checkLogBtnStatus()
   $scope.filters = {}
 
   $scope.filters.levelNumbers = LogcatService.filters.levelNumbers
@@ -20,24 +15,17 @@ module.exports = function LogsCtrl($scope, $routeParams, LogcatService) {
   setFiltersPriority()
 
   function cleanDeviceSettings() {
-    console.log('cleanDevice', cleanDevice)
-    console.log('deviceSerial', deviceSerial)
-    console.log('eqals?', cleanDevice === deviceSerial)
-    if ($routeParams.cleanUp && LogcatService.allowCleanUp) {
-      console.log(Object.keys(LogcatService.deviceEntries).includes(deviceSerial))
-      console.log(LogcatService.deviceEntries)
-      if (Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {        
+    if (Object.keys($rootScope).includes('LogcatService')) {
+      LogcatService.deviceEntries = $rootScope.LogcatService.deviceEntries
+    }
+
+    if (Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {
+      if (LogcatService.deviceEntries[deviceSerial].allowClean) {
         delete LogcatService.deviceEntries[deviceSerial]
-        
-        console.log('deviceSerial', deviceSerial)
-        console.log(LogcatService.deviceEntries)
-        console.log('Device was cleaned')
-        LogcatService.allowCleanUp = false
-        console.log(' LogcatService.allowCleanUp', LogcatService.allowCleanUp)
+        if ($scope.control !== null) {
+          $scope.control.stopLogcat()
+        }
       }
-    } else if(!$routeParams.cleanUp) {
-      LogcatService.allowCleanUp = true
-      console.log('scope.cleanup chaging status', LogcatService.allowCleanUp)
     }
   }
 
@@ -76,28 +64,26 @@ module.exports = function LogsCtrl($scope, $routeParams, LogcatService) {
   }
 
   $scope.$watch('started', function(newValue, oldValue) {
+    if (!Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {
+      LogcatService.deviceEntries[deviceSerial] = {logs: [], selectedLogLevel: 2, started: false,
+        filters: {
+          'message': '',
+          'pid': '',
+          'tid': '',
+          'dateLabel': '',
+          'date': '',
+          'tag': '',
+          'priority': '',
+        }
+      }
+    }
+
     if (newValue !== oldValue) {
-      LogcatService.started = newValue
+      LogcatService.deviceEntries[deviceSerial].started = newValue
       
-      if (LogcatService.started) {
+      if (LogcatService.deviceEntries[deviceSerial].started) {
         $scope.control.startLogcat([]).then(function() {
         })
-
-        if (typeof $scope.filters.priority == 'undefined') {
-          if (!Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {
-            LogcatService.deviceEntries[deviceSerial] = {logs: [], selectedLogLevel: 2, started: true,
-              filters: {
-                'message': '',
-                'pid': '',
-                'tid': '',
-                'dateLabel': '',
-                'date': '',
-                'tag': '',
-                'priority': '',
-              }
-            }
-          }
-        }
 
         LogcatService.deviceEntries[deviceSerial].started = true
         $scope.device.logs_enabled = true
@@ -108,7 +94,7 @@ module.exports = function LogsCtrl($scope, $routeParams, LogcatService) {
           LogcatService.deviceEntries[deviceSerial].started = false
         }
 
-        LogcatService.started = false
+        LogcatService.deviceEntries[deviceSerial].started = false
         $scope.device.logs_enabled = false
         $scope.control.stopLogcat()
       }
@@ -122,9 +108,8 @@ module.exports = function LogsCtrl($scope, $routeParams, LogcatService) {
           LogcatService.deviceEntries.splice(i, 1)
         }
       }
-      LogcatService.started = false
+      LogcatService.deviceEntries[deviceSerial].started = false
       $scope.control.stopLogcat()
-      console.log('onbeforeunload scope.cleanup', LogcatService.allowCleanUp)
     }
   }
 
@@ -157,6 +142,7 @@ module.exports = function LogsCtrl($scope, $routeParams, LogcatService) {
                 LogcatService.deviceEntries[deviceSerial].selectedLogLevel = newValue.number
                 $scope.filters.priority = $scope.filters.levelNumbers[
                   LogcatService.deviceEntries[deviceSerial].selectedLogLevel - 2]
+                transformedInput = LogcatService.deviceEntries[deviceSerial].selectedLogLevel
               }
               break
             case 'filters.pid':
@@ -177,7 +163,7 @@ module.exports = function LogsCtrl($scope, $routeParams, LogcatService) {
           }
 
           // Exclude Debug Level info
-          if (prop !== 'levelNumber' && prop !== 'priority') {
+          if (prop !== 'levelNumber') {
             LogcatService.deviceEntries[deviceSerial].filters[prop] = transformedInput
           }
 
@@ -187,7 +173,9 @@ module.exports = function LogsCtrl($scope, $routeParams, LogcatService) {
           if ($scope !== 'undefined') {
             setFiltersPriority()
           }
-          LogcatService.allowCleanUp = false
+
+          LogcatService.deviceEntries[deviceSerial].allowClean = false
+          LogcatService.allowClean = false
         }
       })
     })

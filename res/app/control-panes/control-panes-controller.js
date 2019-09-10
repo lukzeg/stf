@@ -59,7 +59,6 @@ module.exports =
 
     // TODO: Move this out to Ctrl.resolve
     function getDevice(serial) {
-      console.log(serial)
 
       DeviceService.get(serial, $scope)
         .then(function(device) {
@@ -84,7 +83,6 @@ module.exports =
     }
 
     getDevice($routeParams.serial)
-    $scope.allowClean = true
 
     $scope.$watch('device.state', function(newValue, oldValue) {
       if (newValue !== oldValue) {

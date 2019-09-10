@@ -50,8 +50,6 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
 
   service.deviceEntries = {}
 
-  service.allowCleanUp = true
-
   service.logLevels = [
     'UNKNOWN',
     'DEFAULT',
@@ -98,15 +96,16 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
   }
 
   service.initDeviceLogCollector = function(serial) {
-    service.deviceEntries[serial] = {logs: [], selectedLogLevel: 2, started: false, filters: {
-      'levelNumber': service.filters.levelNumbers,
-      'message': '',
-      'pid': '',
-      'tid': '',
-      'dateLabel': '',
-      'date': '',
-      'tag': ''
-      }
+    service.deviceEntries[serial] = {
+      logs: [], selectedLogLevel: 2, started: false, allowClean: false, filters: {
+        'levelNumber': service.filters.levelNumbers,
+        'message': '',
+        'pid': '',
+        'tid': '',
+        'dateLabel': '',
+        'date': '',
+        'tag': ''
+        }
     }
   }
 
@@ -135,7 +134,7 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
   }
 
   service.filters.filterLines = function() {
-     var devSerial = (window.location.href).split('/').pop()
+    var devSerial = (window.location.href).split('/').pop()
 
     if (Object.keys(service.deviceEntries).includes(devSerial)) {
       service.filters.entries = _.filter(service.deviceEntries[devSerial].logs.entries, filterLine)
@@ -147,13 +146,14 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
   }
 
   function filterLine(line) {
-    var enabled = true
-    var filters = service.filters
-
     var matched = true
-    if (enabled) {
-      if (!_.isEmpty(filters.priority)) {
-        matched &= line.priority >= filters.priority.number
+    var devSerial = line.serial
+    var filters = service.deviceEntries[devSerial].filters
+
+    if (typeof filters !== 'undefined') {
+
+      if (!_.isEmpty(filters.priority.toString())) {
+        matched &= line.priority >= filters.priority
       }
       if (!_.isEmpty(filters.date)) {
         matched &= FilterStringService.filterString(filters.date, line.dateLabel)
@@ -170,8 +170,6 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
       if (!_.isEmpty(filters.message)) {
         matched &= FilterStringService.filterString(filters.message, line.message)
       }
-    } else {
-      matched = true
     }
     return matched
   }

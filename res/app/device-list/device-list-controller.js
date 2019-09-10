@@ -168,7 +168,6 @@ module.exports = function DeviceListCtrl(
 
   $scope.toggle = function(device) {
     if (device.using) {
-      console.log('triggering toogle')
       $scope.kick(device)
     } else {
       $location.path('/control/' + device.serial)

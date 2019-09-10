@@ -46,19 +46,6 @@ module.exports = angular.module('control-panes', [
         //  control
         //}
         })
-      .when('/control/:serial/restore', {
-        template: require('./control-panes.pug'),
-        controller: 'ControlPanesCtrl',
-        resolve: {
-          cleanUp: function($route) { $route.current.params.cleanUp = false
-          }
-        }
-        // TODO: Move device inviting to resolve
-        //resolve: {
-        //  device
-        //  control
-        //}
-      })
       // TODO: add standalone
       .when('/c/:serial', {
         template: require('./control-panes.pug'),

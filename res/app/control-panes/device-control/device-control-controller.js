@@ -10,14 +10,17 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
   $scope.groupDevices = $scope.groupTracker.devices
 
   $scope.$on('$locationChangeStart', function(event, next, current) {
-    console.log('event', event)
-    console.log('next', next)
-    console.log('current', current)
-    LogcatService.allowCleanUp = true
+    $scope.LogcatService = LogcatService
+    $rootScope.LogcatService = LogcatService
   })
 
   $scope.kickDevice = function(device) {
-    // LogcatService.allowCleanUp = true
+    if (Object.keys(LogcatService.deviceEntries).includes(device.serial)) {
+      LogcatService.deviceEntries[device.serial].allowClean = true
+    }
+
+    $scope.LogcatService = LogcatService
+    $rootScope.LogcatService = LogcatService
 
     if (!device || !$scope.device) {
       alert('No device found')

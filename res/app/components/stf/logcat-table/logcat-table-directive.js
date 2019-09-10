@@ -2,7 +2,7 @@ var _ = require('lodash')
 var FileSaver = require('file-saver')
 
 module.exports =
-  function logcatTableDirective($rootScope, $timeout, LogcatService) {
+  function logcatTableDirective($rootScope, $timeout, LogcatService, SaveLogService) {
     return {
       restrict: 'E',
       replace: true,
@@ -17,27 +17,34 @@ module.exports =
         var maxEntriesBuffer = 3000
         var maxVisibleEntries = 100
         var deviceSerial = (window.location.href).split('/').pop()
-        
-        scope.allowClean = true
 
         scope.started = checkLoggerServiceStatus(true)
-        console.log('logcatTableDirective', $rootScope)
+        scope.allowClean = checkAllowClean()
+
+        function checkAllowClean() {
+          if (Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {
+            return LogcatService.deviceEntries[deviceSerial].allowClean
+          }
+
+          return false
+        }
+
         function checkLoggerServiceStatus(loadLogs = false) {
           var collectedLogs = []
+          var isStarted = false
+          if (Object.keys($rootScope).includes('LogcatService')) {
+            LogcatService.deviceEntries = $rootScope.LogcatService.deviceEntries
+          }
 
           if (Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {
             collectedLogs = LogcatService.deviceEntries[deviceSerial].logs
+            isStarted = LogcatService.deviceEntries[deviceSerial].started
           }
-          
-          for (var logLine = 0; logLine < collectedLogs.length; logLine++) {
-            if (deviceSerial === collectedLogs[logLine].serial) {
-              if (loadLogs) {
-                restoreLogs(collectedLogs)
-              }
-              return LogcatService.deviceEntries[deviceSerial].started
-            }
+
+          if (loadLogs) {
+            restoreLogs(collectedLogs)
           }
-          return false
+          return isStarted
         }
 
         function incrementNumberEntry() {
@@ -124,8 +131,8 @@ module.exports =
           clearTable()
 
           var startFrom = 0
-          if (collectedLogs.length - maxEntriesBuffer >= 0) {
-            startFrom = collectedLogs.length - maxEntriesBuffer
+          if (collectedLogs.length - maxVisibleEntries >= 0) {
+            startFrom = collectedLogs.length - maxVisibleEntries
           }
           
           for (var logLine = startFrom; logLine < collectedLogs.length; logLine++) {
@@ -147,6 +154,7 @@ module.exports =
            *  in other case colour will be set to default.
            *
            * @param {event} event object
+           * @returns {None} NaN
            */
         scope.validateDate = function(e) {
           var pattern = ['^(?:(?:([0-1]?\\d|2[0-3]):)?(:[0-5]\\d|[0-5]\\d):|\\d)',
@@ -169,31 +177,19 @@ module.exports =
           }
         }
 
+        /**
+         * Show "Save Log" modal.
+         *
+         * @returns {None} NaN
+         */
         scope.saveLogs = function() {
-          var matches = document.querySelectorAll('[title="Save Logs"]')
-          var filename = deviceSerial + '_logs.log'
-          var a = matches[0]
           var collectedLogs = []
 
           if (Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {
             collectedLogs = LogcatService.deviceEntries[deviceSerial].logs
           }
-         
-          var toSave = ''
-          if (collectedLogs.length > 0) {
-            toSave = {'deviceOS': collectedLogs[0].deviceLabel,
-                      'serial': collectedLogs[0].serial,
-                      'logs': []}
-            for (var line = 0; line < collectedLogs.length; line++) {
-              toSave.logs.push({'date': collectedLogs[line].date,
-                                'pid': collectedLogs[line].pid,
-                                'tag': collectedLogs[line].tag,
-                                'priorityLabel': collectedLogs[line].priorityLabel,
-                                'message': collectedLogs[line].message})
-            }
-          }
-          var blob = new Blob([JSON.stringify(toSave)], {type: 'application/json;charset=utf-8'})
-          FileSaver.saveAs(blob, deviceSerial + '_logs.json')
+
+          SaveLogService.open(collectedLogs, false)
         }
 
         scope.$on('$destroy', function() {

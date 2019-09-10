@@ -7,6 +7,7 @@ module.exports = function DeviceListIconsDirective(
 , GroupService
 , StandaloneService
 , LogcatService
+, $rootScope
 ) {
   function DeviceItem() {
     return {
@@ -86,17 +87,12 @@ module.exports = function DeviceListIconsDirective(
 
         if (device.usable && !device.using) {
           a.href = '#!/control/' + device.serial
-          console.log('serial', device.serial)
-          console.log('deviceListIcons-directive usable', device.usable)
-          console.log('deviceListIcons-directive using', device.using)
           li.classList.remove('device-is-busy')
         }
         else if (device.using && device.usable) {
-          console.log('deviceListIcons-directive using', device.using)
-          a.href = '#!/control/' + device.serial + '/restore'
+          a.href = '#!/control/' + device.serial
         }
         else {
-          console.log('deviceListIcons-directive else', device.usable)
           a.removeAttribute('href')
           li.classList.add('device-is-busy')
         }
@@ -128,8 +124,12 @@ module.exports = function DeviceListIconsDirective(
 
 
       function kickDevice(device, force) {
+        if (Object.keys(LogcatService.deviceEntries).includes(device.serial)) {
+          LogcatService.deviceEntries[device.serial].allowClean = true
+        }
+        LogcatService.allowClean = true
+        $rootScope.LogcatService = LogcatService
         return GroupService.kick(device, force).catch(function(e) {
-          LogcatService.allowCleanUp = true
           alert($filter('translate')(gettext('Device cannot get kicked from the group')))
           throw new Error(e)
         })
