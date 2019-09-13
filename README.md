@@ -398,6 +398,28 @@ The System TALKS USB 2.0 hub is very reliable, but has a few annoying drawbacks.
 
 Most powered USB 3.0 hubs we've tested have had a serious problem: the whole hub occasionally disconnected. This may have been caused by the specific combination of our components and/or OS, but as of yet we don't really know. Disabling USB 3.0 may help if you run into the same problem.
 
+
+## Emulators
+In case if you want to support emulators you need to make few extra steps.
+
+Be sure that you have properly configured on your machine ANDROID_HOME as well JAVA_HOME system variables(tested on java openjdk8).
+In case of Android SDK, please be sure that host on which you run provider, contains needed by you emulator platforms.
+As well in latest version of SDK, we noticed that emulator binaries were moved from tools to emulator folder. Be sure that emulator folder exists in your ANDROID_SDK path. If no please update your ANDROID SDK.
+You can create AVD before you run the STF, so the emulators will be imported to device list and you will have possibility to restart them from main device view.
+More information about creating AVD you can find looking at:
+
+Graphic interface: https://developer.android.com/studio/run/managing-avds
+
+CMD line: https://developer.android.com/studio/command-line/avdmanager
+
+
+To enable emulator methods, please check your file:
+~/.emulator_console_auth_token
+In this file Android SDK stores authorization token needed to authorizate device via telnet.
+If this file does not exists, please create new one in your home location.
+Leave it empty, or if the file exist in your folder, please remove authorization code from it.
+
+
 ## Translating
 
 Currently STF UI is available in English and Japanese.
