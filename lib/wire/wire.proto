@@ -172,6 +172,8 @@ enum DeviceStatus {
   OFFLINE = 1;
   UNAUTHORIZED = 2;
   ONLINE = 3;
+  CONNECTING = 4;
+  AUTHORIZING = 5;
 }
 
 message DeviceStatusMessage {
@@ -228,6 +230,7 @@ message DeviceIdentityMessage {
   required DevicePhoneMessage phone = 11;
   optional string product = 12;
   optional string cpuPlatform = 13;
+  optional string openGLESVersion = 14;
 }
 
 message DeviceProperty {
